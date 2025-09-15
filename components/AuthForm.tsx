@@ -11,6 +11,9 @@ import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { signInWithEmailAndPassword , createUserWithEmailAndPassword} from "firebase/auth"
+import { signIn, signUP } from "@/lib/actions/auth.action"
+import { auth } from "@/firebase/client"
 
 type FormType = 'sign-in' | 'sign-up'
 
@@ -37,19 +40,57 @@ const AuthForm = ({ type }: { type: FormType }) => {
   })
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
+ async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (type === 'sign-up') {
+        const {name, email, password} = values;
+
+        const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
+
+
+         const result = await signUP({
+          uid: userCredentials.user.uid,
+          name:name!,
+          email,
+          password,
+         })
+
+
+         if(!result?.success){
+          toast.error(result?.message);
+          return;
+         }
+
         toast.success('Account created sucessfulyy. Please sign in')
         router.push('/sign-in')
-      } else {
+
+      } else { 
+          const{ email,password} = values;
+
+          const userCredentials = await signInWithEmailAndPassword(auth,email, password);
+
+          const idToken = await userCredentials.user.getIdToken();
+
+          if(!idToken){
+            toast.error('Sign in failed')
+            return;
+          }
+
+          await signIn({
+            email,idToken
+          })
+
         toast.success('sign in sucessfulyy.')
         router.push('/')
         console.log('SIGN IN ', values);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log(error)
-      toast.error(`There was an error ${error}`)
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error('This email is already in use. Please sign in instead.')
+      } else {
+        toast.error(`There was an error: ${error.message || error}`)
+      }
     }
   }
 
@@ -59,7 +100,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
     <div className="w-full max-w-md mx-auto card-board lg:min-w-[566px]">
       <div className="flex flex-col gap card py-14 px-10">
         <div className="flex-row gap-2 justify-center">
-          <Image src="/logo.svg" alt="logo" height={32} width={38} />
+          <Image src="/prepwise_public/public/logo.svg" alt="logo" height={32} width={38} />
           <h2 className="text-primary-100">prepWise</h2>
         </div>
         <h3>practice job interview with AI</h3>
