@@ -11,7 +11,7 @@ import {
 import { getCurrentUser } from "@/lib/actions/auth.action";
 import DisplayTechIcons from "@/components/DisplayTechIcons";
 
-const InterviewDetails = async ({ params }) => {
+const InterviewDetails = async ({ params }: RouteParams) => {
   const { id } = await params;
 
   const user = await getCurrentUser();
@@ -21,7 +21,7 @@ const InterviewDetails = async ({ params }) => {
 
   const feedback = await getFeedbackByInterviewId({
     interviewId: id,
-    userId: user?.id,
+    userId: user?.id!,
   });
 
   return (
@@ -48,7 +48,7 @@ const InterviewDetails = async ({ params }) => {
       </div>
 
       <Agent
-        userName={user?.name}
+        userName={user?.name!}
         userId={user?.id}
         interviewId={id}
         type="interview"
